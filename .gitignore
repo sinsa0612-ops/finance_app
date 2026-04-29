@@ -1,0 +1,20 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# 환경변수 (비밀번호 포함 — 절대 커밋 금지)
+.env
+
+# Oracle Wallet (인증서 포함 — 절대 커밋 금지)
+backend/wallet/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# OS
+.DS_Store
+Thumbs.db
