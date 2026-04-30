@@ -32,8 +32,11 @@ _DB = Depends(get_oracle_service)
 @router.get("/portfolio/summary")
 def get_portfolio_summary(db: OracleService = _DB):
     """전체 포트폴리오 합산 요약 (총 투자금·평가액·손익)을 반환한다."""
-    positions  = db.get_all_positions()
-    valuations = evaluate_positions(positions, db)
+    positions = db.get_all_positions()
+    try:
+        valuations = evaluate_positions(positions, db)
+    except Exception:
+        valuations = []
     return compute_portfolio_summary(valuations)
 
 
@@ -41,7 +44,20 @@ def get_portfolio_summary(db: OracleService = _DB):
 def list_positions(db: OracleService = _DB):
     """모든 투자 포지션을 실시간 가격 평가와 함께 반환한다."""
     positions = db.get_all_positions()
-    return evaluate_positions(positions, db)
+    try:
+        return evaluate_positions(positions, db)
+    except Exception:
+        return [PositionValuation(
+            position_id=p.get("position_id", ""),
+            account_id=p.get("account_id", ""),
+            ticker=p.get("ticker", ""),
+            asset_type=p.get("asset_type", "stock"),
+            exchange=p.get("exchange") or None,
+            quantity=float(p.get("quantity", 0)),
+            avg_cost_price=float(p.get("avg_cost_price", 0)),
+            total_cost=float(p.get("total_cost", 0)),
+            currency=p.get("currency", "USD"),
+        ) for p in positions]
 
 
 @router.post("/positions", response_model=InvestmentPosition, status_code=201)

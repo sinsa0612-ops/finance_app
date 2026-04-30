@@ -598,6 +598,48 @@ class OracleService:
                 """, [position_id])
                 return self._rows_to_dicts(cur)
 
+    def get_inv_txns_by_linked_transaction(self, linked_transaction_id: str) -> List[Dict]:
+        """linked_transaction_id로 연동된 투자 거래 목록을 반환한다."""
+        with self._pool.acquire() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT inv_txn_id, position_id "
+                    "FROM investment_transactions "
+                    "WHERE linked_transaction_id = :1",
+                    [linked_transaction_id],
+                )
+                return self._rows_to_dicts(cur)
+
+    def delete_investment_transaction(self, inv_txn_id: str) -> bool:
+        """투자 거래 1건을 삭제하고 해당 포지션의 수량·평균가를 재계산한다."""
+        # 삭제 전 position_id 확보
+        with self._pool.acquire() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT position_id FROM investment_transactions WHERE inv_txn_id = :1",
+                    [inv_txn_id],
+                )
+                row = cur.fetchone()
+        if not row:
+            return False
+
+        position_id = row[0]
+
+        with self._pool.acquire() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "DELETE FROM investment_transactions WHERE inv_txn_id = :1",
+                    [inv_txn_id],
+                )
+                deleted = cur.rowcount > 0
+            if deleted:
+                conn.commit()
+
+        if deleted and position_id:
+            self._recalculate_position(position_id)
+
+        return deleted
+
     def create_investment_transaction(self, data: Dict) -> Dict:
         """
         투자 거래를 기록하고 포지션의 수량·평균가를 가중평균법으로 재계산한다.

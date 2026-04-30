@@ -12,7 +12,7 @@ import {
 } from "antd";
 import { PlusOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { transactionApi, accountApi } from "../../api/client";
+import { transactionApi, accountApi, investmentApi } from "../../api/client";
 import { formatCurrency, ACCOUNT_TYPE_LABELS } from "../../utils/formatters";
 import TransactionForm from "./TransactionForm";
 
@@ -22,6 +22,7 @@ const { Option } = Select;
 export default function Ledger() {
   const [transactions, setTransactions] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [positions, setPositions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);   // 거래 추가 드로어
   const [detailDrawer, setDetailDrawer] = useState(null); // 거래 상세 드로어
@@ -33,12 +34,14 @@ export default function Ledger() {
     setLoading(true);
     setError(null);
     try {
-      const [txns, accs] = await Promise.all([
+      const [txns, accs, pos] = await Promise.all([
         transactionApi.getAll(filters),
         accountApi.getAll(),
+        investmentApi.getPositions(),
       ]);
       setTransactions(txns);
       setAccounts(accs);
+      setPositions(pos);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -214,7 +217,7 @@ export default function Ledger() {
         width={640}
         destroyOnClose
       >
-        <TransactionForm accounts={accounts} on_success={handle_created} />
+        <TransactionForm accounts={accounts} positions={positions} on_success={handle_created} />
       </Drawer>
     </div>
   );

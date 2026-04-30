@@ -31,25 +31,25 @@ export default function Dashboard() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // 병렬로 모든 데이터 로드
-    Promise.all([
+    Promise.allSettled([
       reportApi.getNetWorth(),
       reportApi.getAccountSummary(),
       investmentApi.getPortfolioSummary(),
       transactionApi.getAll({ limit: 10 }),
-    ])
-      .then(([nw, summary, portfolio, txns]) => {
-        setNetWorthData(nw);
-        setAccountSummary(summary);
-        setPortfolioSummary(portfolio);
-        setRecentTxns(txns);
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+    ]).then(([nw, summary, portfolio, txns]) => {
+      if (nw.status === "fulfilled") setNetWorthData(nw.value);
+      if (summary.status === "fulfilled") setAccountSummary(summary.value);
+      if (portfolio.status === "fulfilled") setPortfolioSummary(portfolio.value);
+      if (txns.status === "fulfilled") setRecentTxns(txns.value);
+
+      const errs = [nw, summary, portfolio, txns]
+        .filter((r) => r.status === "rejected")
+        .map((r) => r.reason?.message || "알 수 없는 오류");
+      if (errs.length) setError(errs.join(" | "));
+    }).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <Spin size="large" style={{ display: "block", margin: "80px auto" }} />;
-  if (error) return <Alert type="error" message={error} />;
 
   const currentNetWorth = netWorthData?.current_net_worth || 0;
   const trend = netWorthData?.trend || [];
@@ -76,6 +76,7 @@ export default function Dashboard() {
 
   return (
     <div>
+      {error && <Alert type="warning" message={`일부 데이터 로드 실패: ${error}`} style={{ marginBottom: 16 }} closable />}
       {/* ── 핵심 지표 카드 ─────────────────────────────────────────── */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={8}>

@@ -15,11 +15,41 @@ from services.price_service import get_price, get_prices_batch, get_rate_limit_s
 
 router = APIRouter(prefix="/api/prices", tags=["prices"])
 
+_MARKET_INDICES = [
+    {"ticker": "^KS11",  "label": "KOSPI"},
+    {"ticker": "^KQ11",  "label": "KOSDAQ"},
+    {"ticker": "^GSPC",  "label": "S&P500"},
+    {"ticker": "^NDX",   "label": "NASDAQ100"},
+    {"ticker": "^DJI",   "label": "다우존스"},
+    {"ticker": "^RUT",   "label": "러셀2000"},
+    {"ticker": "KRW=X",  "label": "달러/원"},
+]
+
 
 @router.get("/status")
 def price_service_status():
     """각 가격 제공자의 남은 요청 수를 반환한다 (디버깅·모니터링용)."""
     return get_rate_limit_status()
+
+
+@router.get("/markets")
+def get_market_indices():
+    """주요 시장 지수 및 환율을 반환한다 (KOSPI·KOSDAQ·S&P500·NASDAQ100·다우존스·러셀2000·달러/원)."""
+    tickers = [m["ticker"] for m in _MARKET_INDICES]
+    price_map = get_prices_batch(tickers, asset_type="stock")
+    result = []
+    for m in _MARKET_INDICES:
+        data = price_map.get(m["ticker"].upper(), PriceData(ticker=m["ticker"]))
+        result.append({
+            "ticker":     m["ticker"],
+            "label":      m["label"],
+            "price":      data.price,
+            "change":     data.change,
+            "change_pct": data.change_pct,
+            "currency":   data.currency,
+            "error":      data.error,
+        })
+    return result
 
 
 @router.get("/{ticker}", response_model=PriceData)

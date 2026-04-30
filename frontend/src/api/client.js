@@ -75,6 +75,7 @@ export const priceApi = {
       .post("/prices/batch", tickers, { params: { asset_type: assetType } })
       .then((r) => r.data),
   getStatus: () => api.get("/prices/status").then((r) => r.data),
+  getMarkets: () => api.get("/prices/markets").then((r) => r.data),
 };
 
 // ─── 보고서 API ───────────────────────────────────────────────────────────────

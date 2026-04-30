@@ -12,6 +12,8 @@ class PriceData(BaseModel):
     """단일 종목 시세 데이터."""
     ticker: str
     price: Optional[float] = None       # 현재가 (None = 조회 실패)
+    change: Optional[float] = None      # 전일 대비 변동액
+    change_pct: Optional[float] = None  # 전일 대비 변동률 (%)
     currency: str = "USD"
     source: str = "unknown"             # 데이터 출처: yfinance / coingecko / alpha_vantage / cache
     is_cached: bool = False             # 캐시 데이터 여부

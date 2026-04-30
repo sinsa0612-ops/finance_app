@@ -8,7 +8,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
   Tabs, Card, Statistic, Row, Col, Button, Drawer, message,
-  Popconfirm, Alert, Spin, Tag,
+  Popconfirm, Alert, Spin, Tag, Space, Table,
 } from "antd";
 import { PlusOutlined, ReloadOutlined, ArrowUpOutlined, ArrowDownOutlined } from "@ant-design/icons";
 import { investmentApi, accountApi } from "../../api/client";
@@ -17,6 +17,7 @@ import {
 } from "../../utils/formatters";
 import PortfolioTable from "./PortfolioTable";
 import InvestmentForm from "./InvestmentForm";
+import MarketTicker from "./MarketTicker";
 
 export default function Investments() {
   const [positions, set_positions] = useState([]);
@@ -31,22 +32,24 @@ export default function Investments() {
   const load_data = useCallback(async () => {
     set_loading(true);
     set_error(null);
-    try {
-      const [pos, txns, smry, accs] = await Promise.all([
-        investmentApi.getPositions(),
-        investmentApi.getAllTransactions(),
-        investmentApi.getPortfolioSummary(),
-        accountApi.getAll(),
-      ]);
-      set_positions(pos);
-      set_all_txns(txns);
-      set_summary(smry);
-      set_accounts(accs.filter((a) => a.account_type === "asset")); // 자산 계정만 표시
-    } catch (e) {
-      set_error(e.message);
-    } finally {
-      set_loading(false);
-    }
+    const [pos, txns, smry, accs] = await Promise.allSettled([
+      investmentApi.getPositions(),
+      investmentApi.getAllTransactions(),
+      investmentApi.getPortfolioSummary(),
+      accountApi.getAll(),
+    ]);
+    if (pos.status === "fulfilled") set_positions(pos.value);
+    if (txns.status === "fulfilled") set_all_txns(txns.value);
+    if (smry.status === "fulfilled") set_summary(smry.value);
+    if (accs.status === "fulfilled")
+      set_accounts(accs.value.filter((a) => a.account_type === "asset"));
+
+    const errs = [pos, txns, smry, accs]
+      .filter((r) => r.status === "rejected")
+      .map((r) => r.reason?.message || "알 수 없는 오류");
+    if (errs.length) set_error(errs.join(" | "));
+
+    set_loading(false);
   }, []);
 
   useEffect(() => { load_data(); }, [load_data]);
@@ -68,7 +71,7 @@ export default function Investments() {
     set_drawer_mode("transaction");
   };
 
-  if (loading && positions.length === 0) {
+  if (loading && positions.length === 0 && !error) {
     return <Spin size="large" style={{ display: "block", margin: "80px auto" }} />;
   }
 
@@ -76,6 +79,9 @@ export default function Investments() {
 
   return (
     <div>
+      {/* ── 시장 지수 전광판 ─────────────────────────────────────────── */}
+      <MarketTicker />
+
       {error && <Alert type="error" message={error} style={{ marginBottom: 16 }} closable />}
 
       {/* ── 포트폴리오 요약 카드 ────────────────────────────────────── */}

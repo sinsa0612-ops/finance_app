@@ -11,7 +11,7 @@ import { Layout, Menu, Typography, theme } from "antd";
 import {
   DashboardOutlined,
   BookOutlined,
-  StockOutlined,
+  AppstoreOutlined,
   BankOutlined,
   BarChartOutlined,
   MenuFoldOutlined,
@@ -23,11 +23,11 @@ const { Title } = Typography;
 
 // 사이드바 메뉴 항목 정의
 const MENU_ITEMS = [
-  { key: "/dashboard",   icon: <DashboardOutlined />,  label: "대시보드" },
-  { key: "/ledger",      icon: <BookOutlined />,        label: "거래 원장" },
-  { key: "/investments", icon: <StockOutlined />,       label: "투자 자산" },
-  { key: "/accounts",    icon: <BankOutlined />,        label: "계정과목" },
-  { key: "/reports",     icon: <BarChartOutlined />,    label: "재무 보고서" },
+  { key: "/dashboard", icon: <DashboardOutlined />, label: "대시보드" },
+  { key: "/ledger",    icon: <BookOutlined />,       label: "거래 원장" },
+  { key: "/assets",    icon: <AppstoreOutlined />,   label: "자산관리" },
+  { key: "/accounts",  icon: <BankOutlined />,       label: "계정과목" },
+  { key: "/reports",   icon: <BarChartOutlined />,   label: "재무 보고서" },
 ];
 
 export default function AppLayout() {

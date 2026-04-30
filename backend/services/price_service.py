@@ -156,9 +156,18 @@ def _fetch_yfinance(ticker: str) -> PriceData:
     if price is None or price != price:  # NaN 체크
         raise ValueError(f"yfinance: {ticker} 가격 없음")
 
+    price_f = round(float(price), 6)
+    prev_close = getattr(fast, "previous_close", None)
+    change = change_pct = None
+    if prev_close and float(prev_close) > 0:
+        change = round(price_f - float(prev_close), 6)
+        change_pct = round(change / float(prev_close) * 100, 4)
+
     return PriceData(
         ticker=ticker,
-        price=round(float(price), 6),
+        price=price_f,
+        change=change,
+        change_pct=change_pct,
         currency=currency,
         source="yfinance",
         is_cached=False,
@@ -259,7 +268,7 @@ def get_price(ticker: str, asset_type: str = "stock") -> PriceData:
     # 1. 캐시 확인
     cached = _cache_get(upper_ticker)
     if cached is not None:
-        return PriceData(**cached.model_dump(), is_cached=True)
+        return cached.model_copy(update={"is_cached": True})
 
     errors: list = []
     is_crypto = asset_type == "crypto" or "-USD" in upper_ticker or "-KRW" in upper_ticker
@@ -288,11 +297,10 @@ def get_price(ticker: str, asset_type: str = "stock") -> PriceData:
     # 4. 모든 제공자 실패 → stale 캐시 반환
     stale = _stale_get(upper_ticker)
     if stale:
-        return PriceData(
-            **stale.model_dump(),
-            is_cached=True,
-            error=f"모든 제공자 실패 (stale 캐시 반환). 오류: {'; '.join(errors)}",
-        )
+        return stale.model_copy(update={
+            "is_cached": True,
+            "error": f"모든 제공자 실패 (stale 캐시 반환). 오류: {'; '.join(errors)}",
+        })
 
     # 5. 완전 실패
     return PriceData(

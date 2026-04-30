@@ -172,6 +172,12 @@ def get_transaction(transaction_id: str, db: OracleService = _DB):
 
 @router.delete("/{transaction_id}", status_code=204)
 def delete_transaction(transaction_id: str, db: OracleService = _DB):
-    """거래와 모든 분개 항목을 삭제한다."""
+    """거래와 모든 분개 항목을 삭제한다. 연동된 투자 거래도 함께 삭제한다."""
+    # 연동 투자 거래 삭제 (포지션 수량·평균가 재계산 포함)
+    for inv_txn in db.get_inv_txns_by_linked_transaction(transaction_id):
+        inv_txn_id = inv_txn.get("inv_txn_id", "")
+        if inv_txn_id:
+            db.delete_investment_transaction(inv_txn_id)
+
     if db.delete_entries_by_transaction(transaction_id) == 0:
         raise HTTPException(status_code=404, detail="거래를 찾을 수 없습니다.")
